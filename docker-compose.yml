@@ -1,0 +1,73 @@
+services:
+  # ========== Базы данных ==========
+  fact-db:
+    image: postgres:15-alpine
+    container_name: fact-db
+    environment:
+      POSTGRES_DB: factdb
+      POSTGRES_USER: factuser
+      POSTGRES_PASSWORD: factpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - fact-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U factuser -d factdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  graph-db:
+    image: postgres:15-alpine
+    container_name: graph-db
+    environment:
+      POSTGRES_DB: graphdb
+      POSTGRES_USER: graphuser
+      POSTGRES_PASSWORD: graphpass
+    ports:
+      - "5434:5432"
+    volumes:
+      - graph-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U graphuser -d graphdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ========== Сервис 1: Fact Service ==========
+  fact-service:
+    build: ./fact-service
+    container_name: fact-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://fact-db:5432/factdb
+      SPRING_DATASOURCE_USERNAME: factuser
+      SPRING_DATASOURCE_PASSWORD: factpass
+      GRAPH_SERVICE_URL: http://graph-service:8082
+    depends_on:
+      fact-db:
+        condition: service_healthy
+      graph-service:
+        condition: service_started
+    restart: on-failure
+
+  # ========== Сервис 2: Graph Service ==========
+  graph-service:
+    build: ./graph-service
+    container_name: graph-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://graph-db:5432/graphdb
+      SPRING_DATASOURCE_USERNAME: graphuser
+      SPRING_DATASOURCE_PASSWORD: graphpass
+      FACT_SERVICE_URL: http://fact-service:8081
+    depends_on:
+      graph-db:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  fact-data:
+  graph-data:

@@ -1,0 +1,16 @@
+server:
+  port: 8082
+
+fact:
+  service:
+    url: ${FACT_SERVICE_URL:http://localhost:8081}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/graphdb}
+    username: ${SPRING_DATASOURCE_USERNAME:graphuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:graphpass}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
